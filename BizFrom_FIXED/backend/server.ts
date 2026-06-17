@@ -229,16 +229,19 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
 
 
     try {
-     const transporter = nodemailer.createTransport({
+    const transporter = nodemailer.createTransport({
   host: smtpHost,
-  port: Number(smtpPortStr),
-  secure: smtpSecureStr === "true",
+  port: 587,
+  secure: false,
+  requireTLS: true,
   auth: {
     user: smtpUser || "",
     pass: smtpPass || ""
-  }
+  },
+  connectionTimeout: 30000,
+  greetingTimeout: 30000,
+  socketTimeout: 30000
 });
-
 await transporter.verify();
 console.log("SMTP VERIFIED SUCCESSFULLY");
       
