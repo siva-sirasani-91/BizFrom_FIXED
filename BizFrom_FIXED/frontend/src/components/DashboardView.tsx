@@ -117,7 +117,7 @@ export default function DashboardView({ user, onNavigate, setSelectedBizForForm 
     try {
       setLoading(true);
       // Fetch report aggregates
-      const repRes = await fetch("/api/reports/overall");
+      const repRes = await fetch("https://bizfrom-fixed.onrender.com/api/reports/overall");
       if (repRes.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;
@@ -125,7 +125,7 @@ export default function DashboardView({ user, onNavigate, setSelectedBizForForm 
       const repData = repRes.ok ? await repRes.json() : {};
 
       // Fetch customer records
-      const custRes = await fetch("/api/customers");
+      const custRes = await fetch("https://bizfrom-fixed.onrender.com/api/customers");
       if (custRes.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;

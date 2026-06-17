@@ -164,7 +164,7 @@ export default function CustomersView({ userId, onRecordAdded }: CustomersViewPr
         transactionId: paymentMethod === "Online" ? transactionId : undefined
       };
 
-      const res = await fetch("/api/customers", {
+      const res = await fetch("https://bizfrom-fixed.onrender.com/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)

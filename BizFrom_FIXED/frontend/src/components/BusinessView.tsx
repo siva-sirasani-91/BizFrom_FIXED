@@ -143,7 +143,7 @@ export default function BusinessView({ userId, selectedBizId, onFormSavedNotice 
 
     try {
       setModalError("");
-      const res = await fetch("/api/businesses", {
+     const res = await fetch("https://bizfrom-fixed.onrender.com/api/businesses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -81,7 +81,7 @@ export default function HelpView() {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/tickets");
+      const res = await fetch("https://bizfrom-fixed.onrender.com/api/tickets");
       if (res.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;
@@ -107,7 +107,7 @@ export default function HelpView() {
     setSubmitMsg("");
 
     try {
-      const res = await fetch("/api/tickets", {
+      const res = await fetch("https://bizfrom-fixed.onrender.com/api/tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject, description })

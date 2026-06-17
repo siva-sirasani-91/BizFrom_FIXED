@@ -62,7 +62,7 @@ export default function AuthPage({ initialMode, onLoginSuccess, onBackToLanding 
 
     setLoading(true);
     try {
-      const response = await fetch("/api/auth/register", {
+     const response = await fetch("https://bizfrom-fixed.onrender.com/api/auth/register", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({ email, password, confirmPassword, name, phone, aadhaar })
@@ -96,7 +96,7 @@ if (!response.ok) {
   setSuccessMsg("");
 
   try {
-    const response = await fetch("/api/auth/verify-otp", {
+    const response = await fetch("https://bizfrom-fixed.onrender.com/api/auth/verify-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, otp })
@@ -134,7 +134,7 @@ if (!response.ok) {
     setSuccessMsg("");
 
     try {
-      const response = await fetch("/api/auth/login", {
+     const response = await fetch("https://bizfrom-fixed.onrender.com/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, rememberMe })
@@ -172,7 +172,7 @@ if (!response.ok) {
   setSuccessMsg("");
 
   try {
-    const response = await fetch("/api/auth/forgot-password", {
+  const response = await fetch("https://bizfrom-fixed.onrender.com/api/auth/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email })
@@ -210,7 +210,7 @@ if (!response.ok) {
     setSuccessMsg("");
 
     try {
-      const response = await fetch("/api/auth/reset-password", {
+      const response = await fetch("https://bizfrom-fixed.onrender.com/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp, newPassword })

@@ -365,7 +365,7 @@ export default function App() {
           setUser(u);
         }
         // Verify token with backend securely before transitioning to "app" mode
-        fetch("/api/auth/validate-session")
+        fetch("https://bizfrom-fixed.onrender.com/api/auth/validate-session")
           .then((res) => {
             if (!res.ok) {
               throw new Error("Invalid session on backend");
