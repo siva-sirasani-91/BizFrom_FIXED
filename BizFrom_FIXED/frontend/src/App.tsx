@@ -430,11 +430,12 @@ export default function App() {
     setAppMode("landing");
     setActiveTab("dashboard");
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch (e) {
-      // Ignored
-    }
-  };
+  await fetch("https://bizfrom-fixed.onrender.com/api/auth/logout", {
+    method: "POST"
+  });
+} catch (e) {
+  // Ignored
+}
 
   const handleGetStarted = (mode: "login" | "register") => {
     setAuthFormTab(mode);
