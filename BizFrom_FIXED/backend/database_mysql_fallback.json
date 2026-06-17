@@ -1,0 +1,233 @@
+{
+  "users": [
+    {
+      "id": "usr_1",
+      "name": "Siva S",
+      "phone": "9876543210",
+      "email": "sivasirasani49@gmail.com",
+      "aadhaar": "1234-5678-9012",
+      "profilePhoto": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
+      "password": "password123",
+      "createdAt": "2026-05-17T14:51:07.758Z"
+    },
+    {
+      "id": "usr_g7fxuosib",
+      "name": "siva",
+      "phone": "0987654321",
+      "email": "sirasanisiva06@gmail.com",
+      "aadhaar": "",
+      "profilePhoto": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+      "password": "$2b$10$Y6RoD3PKUN/eckY0gtjdV.ytovgmLDJ0JEj4PfI28ktgWOqoLVs9.",
+      "status": "active"
+    },
+    {
+      "id": "usr_w2013h65b",
+      "name": "mani",
+      "phone": "1234567890",
+      "email": "sirsanisiva06@gmail.com",
+      "aadhaar": "",
+      "profilePhoto": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+      "password": "$2b$10$gyc1d/6xAtsXEddUgxb1kujud9b1kCoawAdnqQKp4oOT/krT52uQm",
+      "status": "active"
+    },
+    {
+      "id": "usr_9udcuu986",
+      "name": "mama",
+      "phone": "1234567890",
+      "email": "mamaalludu59@gmail.com",
+      "aadhaar": "",
+      "profilePhoto": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150",
+      "password": "$2b$10$Vp4FlYrFZGkyukl2ZiQB3uF0UcppdDJqfZS1Jwgv3.U/dAmpRBFwS",
+      "status": "active"
+    }
+  ],
+  "businesses": [
+    {
+      "id": "biz_1",
+      "userId": "usr_1",
+      "name": "Siva Nursery",
+      "phone": "9123456789",
+      "address": "No. 42 Main Road, Green Meadows, Nellore, AP",
+      "notes": "Nursery specialized in exotic indoor plants and landscaping design.",
+      "status": "active",
+      "createdAt": "2026-05-17T14:51:07.759Z"
+    },
+    {
+      "id": "biz_cza23h77i",
+      "userId": "usr_g7fxuosib",
+      "name": "nursery",
+      "phone": "1234567890",
+      "address": "bayyavaram",
+      "notes": "",
+      "status": "active",
+      "createdAt": "2026-06-17T00:27:48.401Z"
+    }
+  ],
+  "forms": [
+    {
+      "businessId": "biz_1",
+      "fields": [
+        {
+          "id": "f1",
+          "name": "customerName",
+          "label": "Customer Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "f2",
+          "name": "phone",
+          "label": "Phone Number",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "f3",
+          "name": "address",
+          "label": "Address/Delivery Location",
+          "type": "text",
+          "required": false
+        },
+        {
+          "id": "f4",
+          "name": "plantName",
+          "label": "Plant Name & Variety",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "f5",
+          "name": "quantity",
+          "label": "Quantity",
+          "type": "number",
+          "required": true
+        },
+        {
+          "id": "f6",
+          "name": "notes",
+          "label": "Care instructions/Notes",
+          "type": "text",
+          "required": false
+        }
+      ]
+    },
+    {
+      "businessId": "biz_cza23h77i",
+      "fields": [
+        {
+          "id": "df1",
+          "name": "customerName",
+          "label": "Customer Name",
+          "type": "text",
+          "required": true
+        },
+        {
+          "id": "f_8yrkzcq",
+          "name": "workers",
+          "label": "workers",
+          "type": "table",
+          "required": true,
+          "columns": [
+            {
+              "id": "col_oo141st",
+              "name": "names",
+              "label": "names",
+              "type": "text"
+            },
+            {
+              "id": "col_z87uyfr",
+              "name": "packetsCount",
+              "label": "packets count",
+              "type": "number"
+            },
+            {
+              "id": "col_4vyqncf",
+              "name": "traces",
+              "label": "traces",
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "id": "f_0nez7iy",
+          "name": "packetsNames",
+          "label": "packets names",
+          "type": "text",
+          "required": false
+        },
+        {
+          "id": "f_x80mffd",
+          "name": "packetCount",
+          "label": "packet count",
+          "type": "text",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "customers": [
+    {
+      "id": "cust_1",
+      "businessId": "biz_1",
+      "data": {
+        "customerName": "Rohan Gupta",
+        "phone": "9988776655",
+        "address": "Flats 302, Lotus Apts, Nellore",
+        "plantName": "Anthurium Red & Bonsai Ficus",
+        "quantity": 3,
+        "notes": "Needs ceramic pots; scheduled delivery."
+      },
+      "paymentAmount": 2450,
+      "paymentMethod": "Online",
+      "transactionId": "TXN549302198",
+      "createdAt": "2026-06-01T14:51:07.759Z",
+      "updatedAt": "2026-06-01T14:51:07.759Z"
+    },
+    {
+      "id": "cust_2",
+      "businessId": "biz_1",
+      "data": {
+        "customerName": "Anjali Sharma",
+        "phone": "9812345678",
+        "address": "Garden Layout, Sector 4",
+        "plantName": "Peace Lily",
+        "quantity": 2,
+        "notes": "Eco packaging request."
+      },
+      "paymentAmount": 800,
+      "paymentMethod": "Cash",
+      "createdAt": "2026-06-11T14:51:07.759Z",
+      "updatedAt": "2026-06-11T14:51:07.759Z"
+    },
+    {
+      "id": "cust_ukqbumeuv",
+      "businessId": "biz_cza23h77i",
+      "data": {
+        "customerName": "mani",
+        "workers": [
+          {
+            "names": "siva",
+            "packetsCount": 123,
+            "traces": 3456
+          }
+        ],
+        "packetsNames": "teaja",
+        "packetCount": "123"
+      },
+      "paymentAmount": 10000,
+      "paymentMethod": "Cash",
+      "createdAt": "2026-06-17T00:30:27.270Z",
+      "updatedAt": "2026-06-17T00:33:05.169Z"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "tkt_1",
+      "userId": "usr_1",
+      "subject": "How do I add select dropdowns in Custom Forms?",
+      "description": "I wanted to let my nursery customers pick their soil preference from a dropdown but I struggled with the select type in the form builder.",
+      "status": "Resolved",
+      "createdAt": "2026-06-06T14:51:07.759Z"
+    }
+  ]
+}

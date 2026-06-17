@@ -1,0 +1,8 @@
+{
+  "name": "SaaS Business Form Builder & Customer Directory",
+  "description": "A full-featured SaaS application for store owners to manage multiple businesses, design customized customer forms, collect real-time customer data, and view visual payment analytics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
