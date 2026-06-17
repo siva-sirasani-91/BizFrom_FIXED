@@ -1,6 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
+import cors from "cors";
 import path from "path";
 import nodemailer from "nodemailer";
 import bcrypt from "bcryptjs";
@@ -29,14 +30,16 @@ import {
   deleteOTP,
   incrementOTPRetries
 } from "./src/db.ts";
-
 const app = express();
 
-app.use(express.json());
-const PORT = 3000;
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
 
-// Middleware to parse standard requests
 app.use(express.json());
+
+const PORT = 3000;
 
 // Helper function to load, trim, and validate environment variables securely
 function getCleanEnvVar(key: string): string | undefined {
