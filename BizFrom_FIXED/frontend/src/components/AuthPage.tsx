@@ -136,6 +136,7 @@ if (!response.ok) {
     try {
      const response = await fetch("https://bizfrom-fixed.onrender.com/api/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, rememberMe })
       });
