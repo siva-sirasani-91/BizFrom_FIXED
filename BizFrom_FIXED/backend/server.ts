@@ -222,6 +222,12 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
   // 2. Check Custom SMTP Config
   if (smtpHost) {
     console.log(`[Email Service] Attempting SMTP delivery to: ${email} via: ${smtpHost}`);
+    console.log("SMTP_HOST:", smtpHost);
+    console.log("SMTP_PORT:", smtpPortStr);
+    console.log("SMTP_USER:", smtpUser);
+    console.log("SMTP_PASS EXISTS:", !!smtpPass);
+
+
     try {
      const transporter = nodemailer.createTransport({
   host: smtpHost,
