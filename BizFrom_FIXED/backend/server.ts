@@ -223,7 +223,7 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
   if (smtpHost) {
     console.log(`[Email Service] Attempting SMTP delivery to: ${email} via: ${smtpHost}`);
     console.log("SMTP_HOST:", smtpHost);
-    console.log("SMTP_PORT:", smtpPortStr);
+   console.log("SMTP_PORT:", smtpPortStr);
     console.log("SMTP_USER:", smtpUser);
     console.log("SMTP_PASS EXISTS:", !!smtpPass);
 
@@ -231,9 +231,8 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
     try {
     const transporter = nodemailer.createTransport({
   host: smtpHost,
-  port: 587,
+  port: 2525, // change here
   secure: false,
-  requireTLS: true,
   auth: {
     user: smtpUser || "",
     pass: smtpPass || ""
@@ -242,9 +241,9 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
   greetingTimeout: 30000,
   socketTimeout: 30000
 });
+
 await transporter.verify();
 console.log("SMTP VERIFIED SUCCESSFULLY");
-      
 
       await transporter.sendMail({
         from: smtpFrom || `Siva Nursery <${smtpUser}>`,
