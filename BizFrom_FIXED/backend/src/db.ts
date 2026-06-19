@@ -373,20 +373,22 @@ async function createTables(connection: mysql.PoolConnection) {
     `, ["biz_1", "usr_1", "Siva Nursery", "9123456789", "No. 42 Main Road, Green Meadows, Nellore, AP", "Nursery specialized in exotic indoor plants and landscaping design.", "active", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)]);
 
     // Seed Form Fields
-    const fields = [
-      ["f1", "biz_1", "customerName", "Customer Name", "text", 1],
-      ["f2", "biz_1", "phone", "Phone Number", "text", 1],
-      ["f3", "biz_1", "address", "Address/Delivery Location", "text", 0],
-      ["f4", "biz_1", "plantName", "Plant Name & Variety", "text", 1],
-      ["f5", "biz_1", "quantity", "Quantity", "number", 1],
-      ["f6", "biz_1", "notes", "Care instructions/Notes", "text", 0]
-    ];
-    for (const f of fields) {
-      await connection.query(`
-        INSERT INTO form_fields (id, business_id, field_name, field_label, field_type, required)
-        VALUES (?, ?, ?, ?, ?, ?);
-      `, f);
-    }
+const fields = [
+  ["f1", "biz_1", "customerName", "Customer Name", "text", 1],
+  ["f2", "biz_1", "phone", "Phone Number", "text", 1],
+  ["f3", "biz_1", "address", "Address", "text", 0],
+  ["f4", "biz_1", "plantName", "Plant Name", "text", 1],
+  ["f5", "biz_1", "quantity", "Quantity", "number", 1],
+  ["f6", "biz_1", "notes", "Notes", "text", 0]
+];
+
+for (const f of fields) {
+  await connection.query(`
+    INSERT IGNORE INTO form_fields
+    (id, business_id, field_name, field_label, field_type, required)
+    VALUES (?, ?, ?, ?, ?, ?);
+  `, f);
+}
 
     // Seed Customer Records
     await connection.query(`
@@ -734,20 +736,21 @@ export async function createBusiness(biz: Business): Promise<Business> {
 
     // Seed dynamic default form fields
     const defaultFields = [
-      ["df1", biz.id, "customerName", "Customer Name", "text", 1],
-      ["df2", biz.id, "phone", "Phone Number", "text", 1],
-      ["df3", biz.id, "address", "Address", "text", 0],
-      ["df4", biz.id, "plantName", "Plant Name", "text", 1],
-      ["df5", biz.id, "quantity", "Quantity", "number", 1],
-      ["df6", biz.id, "notes", "Notes", "text", 0]
-    ];
-    for (const f of defaultFields) {
-      await pool!.query(
-        `INSERT INTO form_fields (id, business_id, field_name, field_label, field_type, required)
-         VALUES (?, ?, ?, ?, ?, ?);`,
-        f
-      );
-    }
+  [`${biz.id}_1`, biz.id, "customerName", "Customer Name", "text", 1],
+  [`${biz.id}_2`, biz.id, "phone", "Phone Number", "text", 1],
+  [`${biz.id}_3`, biz.id, "address", "Address", "text", 0],
+  [`${biz.id}_4`, biz.id, "plantName", "Plant Name", "text", 1],
+  [`${biz.id}_5`, biz.id, "quantity", "Quantity", "number", 1],
+  [`${biz.id}_6`, biz.id, "notes", "Notes", "text", 0]
+];
+
+for (const f of defaultFields) {
+  await pool!.query(`
+    INSERT IGNORE INTO form_fields
+    (id, business_id, field_name, field_label, field_type, required)
+    VALUES (?, ?, ?, ?, ?, ?);
+  `, f);
+}
 
     return biz;
   } catch (err) {

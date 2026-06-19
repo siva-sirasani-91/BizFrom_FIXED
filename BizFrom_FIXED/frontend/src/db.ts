@@ -733,21 +733,22 @@ export async function createBusiness(biz: Business): Promise<Business> {
     );
 
     // Seed dynamic default form fields
-    const defaultFields = [
-      ["df1", biz.id, "customerName", "Customer Name", "text", 1],
-      ["df2", biz.id, "phone", "Phone Number", "text", 1],
-      ["df3", biz.id, "address", "Address", "text", 0],
-      ["df4", biz.id, "plantName", "Plant Name", "text", 1],
-      ["df5", biz.id, "quantity", "Quantity", "number", 1],
-      ["df6", biz.id, "notes", "Notes", "text", 0]
-    ];
-    for (const f of defaultFields) {
-      await pool!.query(
-        `INSERT INTO form_fields (id, business_id, field_name, field_label, field_type, required)
-         VALUES (?, ?, ?, ?, ?, ?);`,
-        f
-      );
-    }
+   const fields = [
+  ["f1", "biz_1", "customerName", "Customer Name", "text", 1],
+  ["f2", "biz_1", "phone", "Phone Number", "text", 1],
+  ["f3", "biz_1", "address", "Address", "text", 0],
+  ["f4", "biz_1", "plantName", "Plant Name", "text", 1],
+  ["f5", "biz_1", "quantity", "Quantity", "number", 1],
+  ["f6", "biz_1", "notes", "Notes", "text", 0]
+];
+
+for (const f of fields) {
+  await connection.query(`
+    INSERT IGNORE INTO form_fields
+    (id, business_id, field_name, field_label, field_type, required)
+    VALUES (?, ?, ?, ?, ?, ?);
+  `, f);
+}
 
     return biz;
   } catch (err) {
