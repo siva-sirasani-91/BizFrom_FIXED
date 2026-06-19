@@ -424,23 +424,25 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    setUser(null);
-    localStorage.removeItem("bizform_user_session");
-    localStorage.removeItem("bizform_session_token");
-    setAppMode("landing");
-    setActiveTab("dashboard");
-    try {
-  await fetch("https://bizfrom-fixed.onrender.com/api/auth/logout", {
-    method: "POST"
-  });
-} catch (e) {
-  // Ignored
-}
+  setUser(null);
+  localStorage.removeItem("bizform_user_session");
+  localStorage.removeItem("bizform_session_token");
+  setAppMode("landing");
+  setActiveTab("dashboard");
 
-  const handleGetStarted = (mode: "login" | "register") => {
-    setAuthFormTab(mode);
-    setAppMode("auth");
-  };
+  try {
+    await fetch("https://bizfrom-fixed.onrender.com/api/auth/logout", {
+      method: "POST"
+    });
+  } catch (e) {
+    // Ignored
+  }
+};   // <-- ADD THIS
+
+const handleGetStarted = (mode: "login" | "register") => {
+  setAuthFormTab(mode);
+  setAppMode("auth");
+};
 
   const menuItems = [
     { id: "dashboard", label: language === "te" ? "డ్యాష్‌బోర్డ్ హబ్" : "Dashboard Hub", icon: LayoutDashboard },
