@@ -92,15 +92,21 @@ export default function BusinessView({ userId, selectedBizId, onFormSavedNotice 
   const fetchBusinesses = async (autoSelectId?: string) => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/businesses?userId=${userId}`);
-      if (res.status === 401) {
-        window.dispatchEvent(new Event("unauthorized"));
-        return;
-      }
-      const data = res.ok ? await res.json() : null;
-      const bizArray = Array.isArray(data) ? data : [];
-      setBusinesses(bizArray);
+     const res = await fetch(
+  "https://bizfrom-fixed.onrender.com/api/businesses",
+  {
+    credentials: "include"
+  }
+);
 
+if (res.status === 401) {
+  window.dispatchEvent(new Event("unauthorized"));
+  return;
+}
+
+const data = res.ok ? await res.json() : null;
+const bizArray = Array.isArray(data) ? data : [];
+setBusinesses(bizArray);
       if (bizArray.length > 0) {
         // Decide which business to focus on
         const target = autoSelectId 
@@ -124,9 +130,15 @@ export default function BusinessView({ userId, selectedBizId, onFormSavedNotice 
       setBuilderLoading(true);
       setBuilderMsg("");
       setBuilderError("");
-      const res = await fetch(`/api/forms/${bizId}`);
-      const data = await res.json();
-      setFormFields(data.fields || []);
+     const res = await fetch(
+  `https://bizfrom-fixed.onrender.com/api/forms/${bizId}`,
+  {
+    credentials: "include"
+  }
+);
+
+const data = await res.json();
+setFormFields(data.fields || []);
     } catch (err) {
       console.error("Failed to load business form structure:", err);
     } finally {
@@ -144,16 +156,18 @@ export default function BusinessView({ userId, selectedBizId, onFormSavedNotice 
     try {
       setModalError("");
      const res = await fetch("https://bizfrom-fixed.onrender.com/api/businesses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          name: bizName,
-          phone: bizPhone,
-          address: bizAddress,
-          notes: bizNotes
-        })
-      });
+  method: "POST",
+  credentials: "include",   // ✅ ADD THIS
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    name: bizName,
+    phone: bizPhone,
+    address: bizAddress,
+    notes: bizNotes
+  })
+});
       const data = await res.json();
 
       if (!res.ok) {
@@ -175,11 +189,17 @@ export default function BusinessView({ userId, selectedBizId, onFormSavedNotice 
 
   const handleToggleArchive = async (biz: Business, shouldArchive: boolean) => {
     try {
-      const res = await fetch(`/api/businesses/${biz.id}/archive`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ archive: shouldArchive })
-      });
+     const res = await fetch(
+  `https://bizfrom-fixed.onrender.com/api/businesses/${biz.id}/archive`,
+  {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ archive: shouldArchive })
+  }
+);
       if (res.ok) {
         await fetchBusinesses(activeBiz?.id === biz.id ? undefined : activeBiz?.id);
       }
@@ -248,11 +268,19 @@ export default function BusinessView({ userId, selectedBizId, onFormSavedNotice 
     setBuilderError("");
 
     try {
-      const res = await fetch(`/api/forms/${activeBiz.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fields: formFields })
-      });
+      const res = await fetch(
+  `https://bizfrom-fixed.onrender.com/api/forms/${activeBiz.id}`,
+  {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      fields: formFields
+    })
+  }
+);
       const data = await res.json();
 
       if (!res.ok) {

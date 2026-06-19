@@ -365,42 +365,36 @@ export default function App() {
           setUser(u);
         }
         // Verify token with backend securely before transitioning to "app" mode
-        fetch("https://bizfrom-fixed.onrender.com/api/auth/validate-session")
-          .then((res) => {
-            if (!res.ok) {
-              throw new Error("Invalid session on backend");
-            }
-            return res.json();
-          })
-          .then((data) => {
-            if (data.valid && data.user) {
-              setUser(data.user);
-              localStorage.setItem("bizform_user_session", JSON.stringify(data.user));
-              if (data.user.token) {
-                localStorage.setItem("bizform_session_token", data.user.token);
-              }
-              setAppMode("app");
-            } else {
-              handleLogout();
-            }
-          })
-          .catch((err) => {
-            console.warn("Session validation failed, logging out.", err);
-            handleLogout();
-          })
-          .finally(() => {
-            setIsValidatingSession(false);
-          });
-      } catch (err) {
-        console.error("Session parse error: Wiping cached profile.", err);
-        localStorage.removeItem("bizform_user_session");
-        localStorage.removeItem("bizform_session_token");
-        setIsValidatingSession(false);
-      }
-    } else {
-      setIsValidatingSession(false);
+        fetch("https://bizfrom-fixed.onrender.com/api/auth/validate-session", {
+  credentials: "include"
+})
+  .then((res) => {
+    if (!res.ok) {
+      throw new Error("Invalid session on backend");
     }
-  }, []);
+    return res.json();
+  })
+  .then((data) => {
+    if (data.valid && data.user) {
+      setUser(data.user);
+      localStorage.setItem("bizform_user_session", JSON.stringify(data.user));
+
+      if (data.user.token) {
+        localStorage.setItem("bizform_session_token", data.user.token);
+      }
+
+      setAppMode("app");
+    } else {
+      handleLogout();
+    }
+  })
+  .catch((err) => {
+    console.warn("Session validation failed, logging out.", err);
+    handleLogout();
+  })
+  .finally(() => {
+    setIsValidatingSession(false);
+  });
 
   useEffect(() => {
     const handleUnauthorized = () => {
