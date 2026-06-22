@@ -354,48 +354,63 @@ export default function App() {
     }
   }, [globalSearchOpen]);
 
-  // Hydrate session from localStorage on startup and validate with backend
-  useEffect(() => {
-    const cached = localStorage.getItem("bizform_user_session");
-    const cachedToken = localStorage.getItem("bizform_session_token");
-    if (cached || cachedToken) {
-      try {
-        if (cached) {
-          const u = JSON.parse(cached);
-          setUser(u);
-        }
-        // Verify token with backend securely before transitioning to "app" mode
-        fetch("https://bizfrom-fixed.onrender.com/api/auth/validate-session", {
-  credentials: "include"
-})
-  .then((res) => {
-    if (!res.ok) {
-      throw new Error("Invalid session on backend");
-    }
-    return res.json();
-  })
-  .then((data) => {
-    if (data.valid && data.user) {
-      setUser(data.user);
-      localStorage.setItem("bizform_user_session", JSON.stringify(data.user));
+useEffect(() => {
+  const cached = localStorage.getItem("bizform_user_session");
+  const cachedToken = localStorage.getItem("bizform_session_token");
 
-      if (data.user.token) {
-        localStorage.setItem("bizform_session_token", data.user.token);
-      }
-
-      setAppMode("app");
-    } else {
-      handleLogout();
-    }
-  })
-  .catch((err) => {
-    console.warn("Session validation failed, logging out.", err);
-    handleLogout();
-  })
-  .finally(() => {
+  if (!cached && !cachedToken) {
     setIsValidatingSession(false);
-  });
+    return;
+  }
 
+  try {
+    if (cached) {
+      setUser(JSON.parse(cached));
+    }
+
+    fetch("https://bizfrom-fixed.onrender.com/api/auth/validate-session", {
+      credentials: "include",
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Invalid session");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data.valid && data.user) {
+          setUser(data.user);
+          localStorage.setItem(
+            "bizform_user_session",
+            JSON.stringify(data.user)
+          );
+
+          if (data.user.token) {
+            localStorage.setItem(
+              "bizform_session_token",
+              data.user.token
+            );
+          }
+
+          setAppMode("app");
+        } else {
+          handleLogout();
+        }
+      })
+      .catch((err) => {
+        console.warn("Session validation failed:", err);
+        handleLogout();
+      })
+      .finally(() => {
+        setIsValidatingSession(false);
+      });
+  } catch (err) {
+    console.error("Session parse error:", err);
+    localStorage.removeItem("bizform_user_session");
+    localStorage.removeItem("bizform_session_token");
+    setIsValidatingSession(false);
+  }
+}, []);
   useEffect(() => {
     const handleUnauthorized = () => {
       console.warn("Global unauthorized event caught. Redirecting to landing page.");
@@ -426,7 +441,9 @@ export default function App() {
 
   try {
     await fetch("https://bizfrom-fixed.onrender.com/api/auth/logout", {
-      method: "POST"
+      method: "POST",
+        credentials: "include",
+
     });
   } catch (e) {
     // Ignored
