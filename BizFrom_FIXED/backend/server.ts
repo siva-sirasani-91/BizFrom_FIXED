@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
-import express from "express";
+import express, { type Request, type Response } from "express";
 import cors from "cors";
 import path from "path";
 import nodemailer from "nodemailer";
@@ -86,8 +86,17 @@ function parseCookies(cookieStr: string | undefined): Record<string, string> {
   const list: Record<string, string> = {};
   if (!cookieStr) return list;
   cookieStr.split(";").forEach((cookie) => {
-    const parts = cookie.split("=");
-    list[parts.shift()!.trim()] = decodeURI(parts.join("="));
+    const raw = cookie.trim();
+    if (!raw) return;
+    const idx = raw.indexOf("=");
+    if (idx === -1) return;
+    const key = raw.slice(0, idx).trim();
+    const val = raw.slice(idx + 1).trim();
+    try {
+      list[key] = decodeURIComponent(val);
+    } catch (_e) {
+      list[key] = val;
+    }
   });
   return list;
 }
@@ -99,7 +108,7 @@ function generateSessionToken(userId: string, rememberMe: boolean): string {
   return `${payload}:${hmac}`;
 }
 
-function verifySessionToken(token: string | undefined): string | null {
+function verifySessionToken(token: string | null | undefined): string | null {
   if (!token) return null;
   const parts = token.split(":");
   if (parts.length !== 3) return null;
@@ -173,8 +182,8 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
   const smtpUser = getCleanEnvVar("SMTP_USER");
   const smtpPass = getCleanEnvVar("SMTP_PASS");
   const smtpFrom = getCleanEnvVar("SMTP_FROM");
-
   let lastError: Error | null = null;
+  type EmailResult = { success: boolean; provider?: "resend" | "smtp" | "fallback"; error?: string };
 
   // 1. Check Resend API Key
   if (resendApiKey) {
@@ -196,7 +205,7 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
 
       if (res.ok) {
         console.log(`[Email Service] REAL Email dispatched successfully to ${email} via Resend.`);
-        return { success: true, provider: "resend" };
+        return { success: true, provider: "resend" } as EmailResult;
       }
 
       const errText = await res.text();
@@ -208,7 +217,7 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
         console.log("\n==================================================");
         console.log(`[SECURITY DISPATCH] Verification Code for ${email}: ${otp}`);
         console.log("==================================================\n");
-        return { success: true, provider: "fallback" };
+        return { success: true, provider: "fallback" } as EmailResult;
       }
 
       console.log(`[Email Service] Resend status non-ok: ${res.status}`, errText);
@@ -229,21 +238,21 @@ async function sendOTPEmail(email: string, otp: string, purpose: "register" | "r
 
 
     try {
-    const transporter = nodemailer.createTransport({
-  host: smtpHost,
-  port: 2525, // change here
-  secure: false,
-  auth: {
-    user: smtpUser || "",
-    pass: smtpPass || ""
-  },
-  connectionTimeout: 30000,
-  greetingTimeout: 30000,
-  socketTimeout: 30000
-});
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: Number(smtpPortStr) || 587,
+        secure: smtpSecureStr.toLowerCase() === "true",
+        auth: {
+          user: smtpUser || "",
+          pass: smtpPass || ""
+        },
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000
+      });
 
-await transporter.verify();
-console.log("SMTP VERIFIED SUCCESSFULLY");
+      await transporter.verify();
+      console.log("SMTP VERIFIED SUCCESSFULLY");
 
       await transporter.sendMail({
         from: smtpFrom || `Siva Nursery <${smtpUser}>`,
@@ -253,12 +262,12 @@ console.log("SMTP VERIFIED SUCCESSFULLY");
       });
 
       console.log(`[Email Service] REAL Email dispatched successfully to ${email} via SMTP.`);
-      return { success: true, provider: "smtp" };
+      return { success: true, provider: "smtp" } as EmailResult;
     } catch (smtpErr: any) {
       console.error("SMTP FULL ERROR:");
-      console.error(smtpErr);
+      console.error(smtpErr?.message || smtpErr);
       lastError = smtpErr;
-}
+    }
   }
 
   // Graceful fallback for sandbox testing environment to prevent account login/registration lockouts
@@ -266,7 +275,10 @@ console.log("SMTP VERIFIED SUCCESSFULLY");
   console.log("\n==================================================");
   console.log(`[SECURITY DISPATCH] Verification Code for ${email}: ${otp}`);
   console.log("==================================================\n");
-  return { success: true, provider: "fallback" };
+  if (lastError) {
+    return { success: false, error: lastError.message } as EmailResult;
+  }
+  return { success: true, provider: "fallback" } as EmailResult;
 }
 
 function formatObjectKeyBackend(key: string): string {
@@ -365,7 +377,7 @@ function getCustomerMetrics(c: any) {
 // 1. Authentication APIs
 
 // REGISTER (sends OTP)
-const registerHandler = async (req: any, res: any) => {
+const registerHandler = async (req: Request, res: Response) => {
   const { email, password, confirmPassword, name, phone, aadhaar } = req.body;
   if (!email || !password || !name) {
     return res.status(400).json({ error: "Email, password, and name are required." });
@@ -397,12 +409,14 @@ const registerHandler = async (req: any, res: any) => {
     console.log(`[SMS/Email Registration OTP] Prepared OTP ${otp} for ${email}. Emailing code.`);
     const otpResult = await sendOTPEmail(email, otp, "register");
 
+    if (!otpResult || (otpResult as any).success === false) {
+      console.error("Failed to deliver registration OTP:", (otpResult as any)?.error || otpResult);
+      return res.status(502).json({ error: "Failed to send verification email. Please try again later." });
+    }
+
     const message = "An activation OTP code has been dispatched to your email address. Please check your inbox and spam folder.";
 
-    res.json({
-      status: "ok",
-      message
-    });
+    res.json({ status: "ok", message });
   } catch (err: any) {
     console.error("Registration error:", err);
     res.status(500).json({ error: err.message });
@@ -413,7 +427,7 @@ app.post("/register", registerHandler);
 app.post("/api/auth/register", registerHandler);
 
 // VERIFY OTP (actually creates the user)
-const verifyRegistrationOtpHandler = async (req: any, res: any) => {
+const verifyRegistrationOtpHandler = async (req: Request, res: Response) => {
   const { email, otp } = req.body;
   if (!email || !otp) {
     return res.status(400).json({ error: "Email and OTP are required" });
@@ -483,7 +497,7 @@ app.post("/api/auth/verify-otp", verifyRegistrationOtpHandler);
 
 
 // LOGIN
-const loginHandler = async (req: any, res: any) => {
+const loginHandler = async (req: Request, res: Response) => {
   const { email, password, rememberMe } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: "Email and password are required" });
@@ -541,7 +555,7 @@ app.post("/api/auth/login", loginHandler);
 
 
 // FORGOT PASSWORD
-const forgotPasswordHandler = async (req: any, res: any) => {
+const forgotPasswordHandler = async (req: Request, res: Response) => {
   const { email } = req.body;
   if (!email) {
     return res.status(400).json({ error: "Email input is required" });
@@ -561,12 +575,14 @@ const forgotPasswordHandler = async (req: any, res: any) => {
     console.log(`[Forgot Password OTP] Prepared Reset OTP for ${email}. Emailing code.`);
     const otpResult = await sendOTPEmail(email, otp, "reset");
 
+    if (!otpResult || (otpResult as any).success === false) {
+      console.error("Failed to deliver reset OTP:", (otpResult as any)?.error || otpResult);
+      return res.status(502).json({ error: "Failed to send reset email. Please try again later." });
+    }
+
     const message = "A reset verification OTP code has been sent to your email address. Please check your inbox and spam folder.";
 
-    res.json({
-      status: "ok",
-      message
-    });
+    res.json({ status: "ok", message });
   } catch (err: any) {
     console.error("Forgot password endpoint error:", err);
     res.status(500).json({ error: err.message });
@@ -578,7 +594,7 @@ app.post("/api/auth/forgot-password", forgotPasswordHandler);
 
 
 // VERIFY RESET OTP
-const verifyResetOtpHandler = async (req: any, res: any) => {
+const verifyResetOtpHandler = async (req: Request, res: Response) => {
   const { email, otp } = req.body;
   if (!email || !otp) {
     return res.status(400).json({ error: "Email and OTP are required" });
@@ -623,7 +639,7 @@ app.post("/api/auth/verify-reset-otp", verifyResetOtpHandler);
 
 
 // RESET PASSWORD
-const resetPasswordHandler = async (req: any, res: any) => {
+const resetPasswordHandler = async (req: Request, res: Response) => {
   const { email, otp, newPassword } = req.body;
   if (!email || !newPassword) {
     return res.status(400).json({ error: "Email and New Password are required" });
@@ -662,7 +678,7 @@ app.post("/api/auth/reset-password", resetPasswordHandler);
 
 
 // LOGOUT
-const logoutHandler = (req: any, res: any) => {
+const logoutHandler = (req: Request, res: Response) => {
   res.setHeader("Set-Cookie", "session_token=; Path=/; HttpOnly; Secure; SameSite=None; Max-Age=0");
   res.json({ status: "success", message: "Session signed out successfully." });
 };
@@ -672,7 +688,7 @@ app.post("/api/auth/logout", logoutHandler);
 
 
 // SESSION VALIDATION / PROFILE INTEGRITY CHECK
-app.get("/api/auth/validate-session", async (req, res) => {
+app.get("/api/auth/validate-session", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const userId = verifySessionToken(token);
   if (!userId) {
@@ -692,7 +708,7 @@ app.get("/api/auth/validate-session", async (req, res) => {
 });
 
 // GET PROFILE INFO
-app.get("/api/auth/profile/:id", async (req, res) => {
+app.get("/api/auth/profile/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
@@ -714,7 +730,7 @@ app.get("/api/auth/profile/:id", async (req, res) => {
 });
 
 // UPDATE PROFILE
-app.put("/api/auth/profile/:id", async (req, res) => {
+app.put("/api/auth/profile/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
@@ -740,7 +756,7 @@ app.put("/api/auth/profile/:id", async (req, res) => {
 });
 
 // CHANGE PASSWORD
-app.put("/api/auth/profile/:id/password", async (req, res) => {
+app.put("/api/auth/profile/:id/password", async (req: Request, res: Response) => {
   const { id } = req.params;
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
@@ -783,7 +799,7 @@ app.put("/api/auth/profile/:id/password", async (req, res) => {
 // 2. Business APIs
 
 // LIST ALL BUSINESSES
-app.get("/api/businesses", async (req, res) => {
+app.get("/api/businesses", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -799,7 +815,7 @@ app.get("/api/businesses", async (req, res) => {
 });
 
 // CREATE BUSINESS
-app.post("/api/businesses", async (req, res) => {
+app.post("/api/businesses", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -827,12 +843,16 @@ app.post("/api/businesses", async (req, res) => {
     await createBusiness(newBiz);
     res.status(201).json(newBiz);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
+  console.error("CREATE BUSINESS ERROR:", err);
+  res.status(500).json({
+    success: false,
+    error: err.message,
+    stack: err.stack
+  });
+}
 });
-
 // UPDATE BUSINESS
-app.put("/api/businesses/:id", async (req, res) => {
+app.put("/api/businesses/:id", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -857,7 +877,7 @@ app.put("/api/businesses/:id", async (req, res) => {
 });
 
 // ARCHIVE/RESTORE
-app.put("/api/businesses/:id/archive", async (req, res) => {
+app.put("/api/businesses/:id/archive", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -889,7 +909,7 @@ app.put("/api/businesses/:id/archive", async (req, res) => {
 // 3. Form Builder APIs
 
 // GET FORM SCHEMA
-app.get("/api/forms/:businessId", async (req, res) => {
+app.get("/api/forms/:businessId", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -927,7 +947,7 @@ app.get("/api/forms/:businessId", async (req, res) => {
 });
 
 // UPDATE FORM SCHEMA
-app.post("/api/forms/:businessId", async (req, res) => {
+app.post("/api/forms/:businessId", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -959,7 +979,7 @@ app.post("/api/forms/:businessId", async (req, res) => {
 // 4. Customers and Transactions APIs
 
 // LIST CUSTOMERS WITH OPTIONAL FILTERS
-app.get("/api/customers", async (req, res) => {
+app.get("/api/customers", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1006,7 +1026,7 @@ app.get("/api/customers", async (req, res) => {
 });
 
 // ADD CUSTOMER
-app.post("/api/customers", async (req, res) => {
+app.post("/api/customers", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1049,7 +1069,7 @@ app.post("/api/customers", async (req, res) => {
 });
 
 // EDIT CUSTOMER
-app.put("/api/customers/:id", async (req, res) => {
+app.put("/api/customers/:id", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1088,7 +1108,7 @@ app.put("/api/customers/:id", async (req, res) => {
 });
 
 // DELETE CUSTOMER
-app.delete("/api/customers/:id", async (req, res) => {
+app.delete("/api/customers/:id", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1123,7 +1143,7 @@ app.delete("/api/customers/:id", async (req, res) => {
 });
 
 // RESTORE CUSTOMER
-app.post("/api/customers/:id/restore", async (req, res) => {
+app.post("/api/customers/:id/restore", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1155,7 +1175,7 @@ app.post("/api/customers/:id/restore", async (req, res) => {
 // 5. Reports Analytics APIs
 
 // OVERALL REPORT
-app.get("/api/reports/overall", async (req, res) => {
+app.get("/api/reports/overall", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1228,7 +1248,7 @@ app.get("/api/reports/overall", async (req, res) => {
 });
 
 // BUSINESS-SPECIFIC REPORT
-app.get("/api/reports/business/:id", async (req, res) => {
+app.get("/api/reports/business/:id", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1295,7 +1315,7 @@ app.get("/api/reports/business/:id", async (req, res) => {
 // 6. Help & Tickets System APIs
 
 // GET TICKETS
-app.get("/api/tickets", async (req, res) => {
+app.get("/api/tickets", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1311,7 +1331,7 @@ app.get("/api/tickets", async (req, res) => {
 });
 
 // CREATE TICKET
-app.post("/api/tickets", async (req, res) => {
+app.post("/api/tickets", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
@@ -1343,7 +1363,7 @@ app.post("/api/tickets", async (req, res) => {
 
 // 7. Global Search APIs
 
-app.get("/api/search/global", async (req, res) => {
+app.get("/api/search/global", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
   if (!loggedInUserId) {
