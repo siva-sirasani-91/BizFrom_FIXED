@@ -36,8 +36,7 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://localhost:3000",
   "https://bizfrom-fixed.onrender.com",
-  // Add your Vercel frontend URL here, e.g.:
-  // "https://your-app.vercel.app"
+  "https://bizfrom-suite.vercel.app"
 ];
 
 app.use(cors({
