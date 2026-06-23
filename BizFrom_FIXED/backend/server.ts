@@ -32,8 +32,25 @@ import {
 } from "./src/db.ts";
 const app = express();
 
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://bizfrom-fixed.onrender.com",
+  // Add your Vercel frontend URL here, e.g.:
+  // "https://your-app.vercel.app"
+];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, curl, mobile apps)
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    // In development allow any localhost port
+    if (process.env.NODE_ENV !== "production" && origin.startsWith("http://localhost:")) {
+      return callback(null, true);
+    }
+    callback(new Error(`CORS: Origin '${origin}' not allowed`));
+  },
   credentials: true
 }));
 
@@ -110,16 +127,32 @@ function generateSessionToken(userId: string, rememberMe: boolean): string {
 
 function verifySessionToken(token: string | null | undefined): string | null {
   if (!token) return null;
-  const parts = token.split(":");
-  if (parts.length !== 3) return null;
-  const [userId, expiresAtStr, signature] = parts;
+  // Token format: userId:expiresAt:hmacSignature
+  // The HMAC (sha256 hex) is always exactly 64 characters at the end.
+  // The expiresAt is always a 13-digit Unix ms timestamp before it.
+  // This avoids breakage if a userId ever contained a colon.
+  const lastColon = token.lastIndexOf(":");
+  if (lastColon === -1) return null;
+  const signature = token.slice(lastColon + 1);
+  const withoutSig = token.slice(0, lastColon);
+  const secondLastColon = withoutSig.lastIndexOf(":");
+  if (secondLastColon === -1) return null;
+  const userId = withoutSig.slice(0, secondLastColon);
+  const expiresAtStr = withoutSig.slice(secondLastColon + 1);
+  if (!userId || !expiresAtStr || !signature) return null;
   const expiresAt = Number(expiresAtStr);
   if (isNaN(expiresAt) || Date.now() > expiresAt) {
     return null;
   }
   const payload = `${userId}:${expiresAtStr}`;
   const expectedHmac = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
-  if (signature !== expectedHmac) {
+  // Use timingSafeEqual to prevent timing attacks
+  try {
+    const sigBuf = Buffer.from(signature, "hex");
+    const expBuf = Buffer.from(expectedHmac, "hex");
+    if (sigBuf.length !== expBuf.length) return null;
+    if (!crypto.timingSafeEqual(sigBuf, expBuf)) return null;
+  } catch {
     return null;
   }
   return userId;
@@ -843,13 +876,9 @@ app.post("/api/businesses", async (req: Request, res: Response) => {
     await createBusiness(newBiz);
     res.status(201).json(newBiz);
   } catch (err: any) {
-  console.error("CREATE BUSINESS ERROR:", err);
-  res.status(500).json({
-    success: false,
-    error: err.message,
-    stack: err.stack
-  });
-}
+    console.error("CREATE BUSINESS ERROR:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 // UPDATE BUSINESS
 app.put("/api/businesses/:id", async (req: Request, res: Response) => {
@@ -1047,8 +1076,12 @@ app.post("/api/customers", async (req: Request, res: Response) => {
     }
 
     const id = "cust_" + Math.random().toString(36).substring(2, 11);
-    const metrics = getCustomerMetrics({ data, paymentAmount, paymentMethod });
-    const finalPaymentAmount = metrics.amount;
+    // Use the explicitly submitted paymentAmount as the primary source of truth.
+    // Only fall back to scanning form fields if no explicit amount was provided.
+    const explicitAmount = Number(paymentAmount);
+    const finalPaymentAmount = (!isNaN(explicitAmount) && explicitAmount > 0)
+      ? explicitAmount
+      : getCustomerMetrics({ data, paymentAmount, paymentMethod }).amount;
 
     const newCustomer = {
       id,
@@ -1092,8 +1125,10 @@ app.put("/api/customers/:id", async (req: Request, res: Response) => {
       return res.status(403).json({ error: "Forbidden: You do not own this business." });
     }
 
-    const metrics = getCustomerMetrics({ data, paymentAmount, paymentMethod });
-    const finalPaymentAmount = metrics.amount;
+    const explicitAmountEdit = Number(paymentAmount);
+    const finalPaymentAmount = (!isNaN(explicitAmountEdit) && explicitAmountEdit > 0)
+      ? explicitAmountEdit
+      : getCustomerMetrics({ data, paymentAmount, paymentMethod }).amount;
 
     const updated = await updateCustomerRecord(id, {
       data,
@@ -1263,7 +1298,8 @@ app.get("/api/reports/business/:id", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Business not found or access denied." });
     }
 
-    const bizCustomers = await getCustomerRecords(id);
+    const bizCustomersRaw = await getCustomerRecords(id);
+    const bizCustomers = bizCustomersRaw.filter((c: any) => !c.deletedAt);
     const totalCustomers = bizCustomers.length;
 
     let totalCollection = 0;
@@ -1780,6 +1816,12 @@ app.get("/api/search/global", async (req: Request, res: Response) => {
 });
 
 
+// ======================== HEALTH CHECK ========================
+
+app.get("/", (_req, res) => {
+  res.json({ status: "Backend Running" });
+});
+
 // ======================== STATIC & DEV BINDINGS ========================
 
 async function startServer() {
@@ -1802,10 +1844,6 @@ async function startServer() {
   }
   console.log("[Env Analyzer] OAuth Requirements: DEACTIVATED (Standard Password + OTP flow is default).");
   console.log("================================================================");
-
- app.get("/", (req, res) => {
-  res.json({ status: "Backend Running" });
-});
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`[BizServer] MySQL Relational Full-Stack server booted at http://0.0.0.0:${PORT}`);
