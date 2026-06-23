@@ -23,6 +23,11 @@ import {
 } from "lucide-react";
 import { CustomerRecord, Business, FormField } from "../types";
 import { jsPDF } from "jspdf";
+import * as XLSX from "xlsx";
+
+const API_BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:3000" 
+  : "https://bizfrom-fixed.onrender.com";
 
 export function getRecordAmount(cust: any): number {
   if (!cust) return 0;
@@ -308,7 +313,7 @@ export default function RecordsView({ userId, initialBizId, onClearInitialBizId 
     try {
       setLoading(true);
       // Load nurseries
-      const bRes = await fetch(`/api/businesses?userId=${userId}`);
+      const bRes = await fetch(`${API_BASE_URL}/api/businesses`);
       if (bRes.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;
@@ -318,7 +323,7 @@ export default function RecordsView({ userId, initialBizId, onClearInitialBizId 
       setBusinesses(bData.filter((b: any) => b.status === "active"));
 
       // Load records matching current search parameters
-      let url = "/api/customers?";
+      let url = `${API_BASE_URL}/api/customers?`;
       if (selectedBizId) {
         url += `businessId=${selectedBizId}&`;
       }

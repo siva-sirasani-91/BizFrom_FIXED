@@ -9,6 +9,10 @@ import { Business, CustomerRecord, FormField, UserProfile } from "../types";
 import { jsPDF } from "jspdf";
 import * as XLSX from "xlsx";
 
+const API_BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:3000" 
+  : "https://bizfrom-fixed.onrender.com";
+
 interface ReportsViewProps {
   userId: string;
   user: UserProfile;
@@ -142,7 +146,7 @@ export default function ReportsView({ userId, user, language }: ReportsViewProps
   const loadBusinesses = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/businesses?userId=${userId}`);
+      const res = await fetch(`${API_BASE_URL}/api/businesses`);
       if (res.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;
@@ -173,7 +177,7 @@ export default function ReportsView({ userId, user, language }: ReportsViewProps
     try {
       setLoading(true);
       // Fetch dynamic form fields (determines dynamic report columns)
-      const schemaRes = await fetch(`/api/forms/${selectedBizId}`);
+      const schemaRes = await fetch(`${API_BASE_URL}/api/forms/${selectedBizId}`);
       if (schemaRes.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;
@@ -184,7 +188,7 @@ export default function ReportsView({ userId, user, language }: ReportsViewProps
       }
 
       // Fetch customer records
-      const recordsRes = await fetch(`/api/customers?businessId=${selectedBizId}`);
+      const recordsRes = await fetch(`${API_BASE_URL}/api/customers?businessId=${selectedBizId}`);
       if (recordsRes.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;

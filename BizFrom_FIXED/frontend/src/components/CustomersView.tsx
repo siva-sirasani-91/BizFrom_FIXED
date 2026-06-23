@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import { Business, FormField } from "../types";
 
+const API_BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:3000" 
+  : "https://bizfrom-fixed.onrender.com";
+
 interface CustomersViewProps {
   userId: string;
   onRecordAdded?: () => void;
@@ -45,7 +49,7 @@ export default function CustomersView({ userId, onRecordAdded }: CustomersViewPr
   const fetchBusinesses = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/businesses?userId=${userId}`);
+      const res = await fetch(`${API_BASE_URL}/api/businesses`);
       if (res.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;
@@ -71,7 +75,7 @@ export default function CustomersView({ userId, onRecordAdded }: CustomersViewPr
       setSubmitMsg("");
       setSubmitError("");
       
-      const res = await fetch(`/api/forms/${bizId}`);
+      const res = await fetch(`${API_BASE_URL}/api/forms/${bizId}`);
       const data = await res.json();
       setFormFields(data.fields || []);
       
@@ -164,7 +168,7 @@ export default function CustomersView({ userId, onRecordAdded }: CustomersViewPr
         transactionId: paymentMethod === "Online" ? transactionId : undefined
       };
 
-      const res = await fetch("https://bizfrom-fixed.onrender.com/api/customers", {
+      const res = await fetch(`${API_BASE_URL}/api/customers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)

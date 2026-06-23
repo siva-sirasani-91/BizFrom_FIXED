@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import { UserProfile } from "../types";
 
+const API_BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:3000" 
+  : "https://bizfrom-fixed.onrender.com";
+
 interface ProfileViewProps {
   user: UserProfile;
   onProfileUpdate: (updatedUser: UserProfile) => void;
@@ -50,7 +54,7 @@ export default function ProfileView({ user, onProfileUpdate }: ProfileViewProps)
     setDetailsSuccess("");
 
     try {
-      const response = await fetch(`/api/auth/profile/${user.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile/${user.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, phone, email, aadhaar, profilePhoto: photo })
@@ -83,7 +87,7 @@ export default function ProfileView({ user, onProfileUpdate }: ProfileViewProps)
     setPassLoading(true);
 
     try {
-      const response = await fetch(`/api/auth/profile/${user.id}/password`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/profile/${user.id}/password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ currentPassword, newPassword })

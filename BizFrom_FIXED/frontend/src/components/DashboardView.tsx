@@ -20,6 +20,10 @@ import {
 } from "lucide-react";
 import { UserProfile, CustomerRecord, Business } from "../types";
 
+const API_BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:3000" 
+  : "https://bizfrom-fixed.onrender.com";
+
 export function getRecordAmount(cust: any): number {
   if (!cust) return 0;
   
@@ -134,7 +138,7 @@ export default function DashboardView({ user, onNavigate, setSelectedBizForForm 
       const custData = Array.isArray(custDataRaw) ? custDataRaw.filter((c: any) => !c.deletedAt) : [];
 
       // Fetch businesses
-      const bRes = await fetch(`/api/businesses?userId=${user.id}`);
+      const bRes = await fetch(`${API_BASE_URL}/api/businesses`);
       if (bRes.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;

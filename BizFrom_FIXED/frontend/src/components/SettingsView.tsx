@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import { UserProfile } from "../types";
 
+const API_BASE_URL = typeof window !== "undefined" && window.location.hostname === "localhost" 
+  ? "http://localhost:3000" 
+  : "https://bizfrom-fixed.onrender.com";
+
 interface SettingsViewProps {
   user: UserProfile;
   onLogout: () => void;
@@ -51,7 +55,7 @@ export default function SettingsView({ user, onLogout, language = "en", onLangua
   const fetchDeletedRecords = async () => {
     setLoadingDeleted(true);
     try {
-      const bRes = await fetch(`/api/businesses?userId=${user.id}`);
+      const bRes = await fetch(`${API_BASE_URL}/api/businesses`);
       if (bRes.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;
@@ -61,7 +65,7 @@ export default function SettingsView({ user, onLogout, language = "en", onLangua
       setBusinesses(bData);
       const bizIds = bData.map((b: any) => b.id);
 
-      const cRes = await fetch(`/api/customers`);
+      const cRes = await fetch(`${API_BASE_URL}/api/customers`);
       if (cRes.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
         return;
@@ -94,7 +98,7 @@ export default function SettingsView({ user, onLogout, language = "en", onLangua
   const handleRestoreRecord = async (recordId: string) => {
     setRestoringId(recordId);
     try {
-      const res = await fetch(`/api/customers/${recordId}/restore`, {
+      const res = await fetch(`${API_BASE_URL}/api/customers/${recordId}/restore`, {
         method: "POST"
       });
       if (res.ok) {
@@ -114,7 +118,7 @@ export default function SettingsView({ user, onLogout, language = "en", onLangua
   const handleDeletePermanently = async (recordId: string) => {
     setDeletingId(recordId);
     try {
-      const res = await fetch(`/api/customers/${recordId}?permanent=true`, {
+      const res = await fetch(`${API_BASE_URL}/api/customers/${recordId}?permanent=true`, {
         method: "DELETE"
       });
       if (res.ok) {
