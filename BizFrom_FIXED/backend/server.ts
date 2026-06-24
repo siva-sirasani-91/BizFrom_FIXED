@@ -899,17 +899,30 @@ app.put("/api/businesses/:id", async (req: Request, res: Response) => {
   const { name, phone, address, notes, status } = req.body;
 
   try {
-    const userBizs = await getBusinesses(loggedInUserId);
-    const ownsBiz = userBizs.some((b) => b.id === id);
-    if (!ownsBiz) {
-      return res.status(403).json({ error: "Forbidden: You do not own this business." });
-    }
+  const userBizs = await getBusinesses(loggedInUserId);
 
-    const updated = await updateBusiness(id, { name, phone, address, notes, status });
-    res.json(updated);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  const targetBiz = userBizs.find(
+    (b: any) => b.id === id
+  );
+
+  if (!targetBiz) {
+    return res.status(403).json({
+      error: "Forbidden: You do not own this business."
+    });
   }
+
+  const updated = await updateBusiness(id, {
+    name,
+    phone,
+    address,
+    notes,
+    status
+  });
+
+  res.json(updated);
+} catch (err: any) {
+  res.status(500).json({ error: err.message });
+}
 });
 
 // ARCHIVE/RESTORE
@@ -923,24 +936,32 @@ app.put("/api/businesses/:id/archive", async (req: Request, res: Response) => {
   const { id } = req.params;
   const { archive } = req.body;
 
-  try {
-    const userBizs = await getBusinesses(loggedInUserId);
-    const ownsBiz = userBizs.some((b) => b.id === id);
-    if (!ownsBiz) {
-      return res.status(403).json({ error: "Forbidden: You do not own this business." });
-    }
+ try {
+  const userBizs = await getBusinesses(loggedInUserId);
 
-    const updated = await archiveBusiness(id, archive);
-    res.json({
-      status: "success",
-      message: archive ? "Business archived successfully" : "Business restored successfully",
-      business: updated
+  const targetBiz = userBizs.find(
+    (b: any) => b.id === id
+  );
+
+  if (!targetBiz) {
+    return res.status(403).json({
+      error: "Forbidden: You do not own this business."
     });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
   }
-});
 
+  const updated = await archiveBusiness(id, archive);
+
+  res.json({
+    status: "success",
+    message: archive
+      ? "Business archived successfully"
+      : "Business restored successfully",
+    business: updated
+  });
+} catch (err: any) {
+  res.status(500).json({ error: err.message });
+}
+});
 
 // 3. Form Builder APIs
 
@@ -953,44 +974,38 @@ app.get("/api/forms/:businessId", async (req: Request, res: Response) => {
   }
 
   const { businessId } = req.params;
-  try {
-    const userBizs = await getBusinesses(loggedInUserId);
+ try {
+  const userBizs = await getBusinesses(loggedInUserId);
 
-const targetBiz = userBizs.find(
-  (b: any) => b.id === businessId
-);
+  const ownsBiz = userBizs.some(
+    (b) => b.id === businessId
+  );
 
-if (!targetBiz) {
-  return res.status(403).json({
-    error: "Forbidden: You do not own this business."
-  });
-}
-
-if (targetBiz.status === "archived") {
-  return res.status(409).json({
-    error: "Cannot add customers to an archived business."
-  });
-}
-    const fields = await getFormFields(businessId);
-    if (!fields || fields.length === 0) {
-      // Return a default template structure instead of empty
-      const defaultStructure = {
-        businessId,
-        fields: [
-          { id: "df1", name: "customerName", label: "Customer Name", type: "text", required: true },
-          { id: "df2", name: "phone", label: "Phone Number", type: "text", required: true },
-          { id: "df3", name: "address", label: "Address", type: "text", required: false },
-          { id: "df4", name: "plantName", label: "Plant Name", type: "text", required: true },
-          { id: "df5", name: "quantity", label: "Quantity", type: "number", required: true },
-          { id: "df6", name: "notes", label: "Notes", type: "text", required: false }
-        ]
-      };
-      return res.json(defaultStructure);
-    }
-    res.json({ businessId, fields });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
+  if (!ownsBiz) {
+    return res.status(403).json({
+      error: "Forbidden: You do not own this business."
+    });
   }
+
+  const fields = await getFormFields(businessId);
+
+  if (!fields || fields.length === 0) {
+    return res.json({
+      businessId,
+      fields: []
+    });
+  }
+
+  res.json({
+    businessId,
+    fields
+  });
+
+} catch (err: any) {
+  res.status(500).json({
+    error: err.message
+  });
+}
 });
 
 // UPDATE FORM SCHEMA
@@ -1087,11 +1102,23 @@ app.post("/api/customers", async (req: Request, res: Response) => {
   }
 
   try {
-    const userBizs = await getBusinesses(loggedInUserId);
-    const ownsBiz = userBizs.some((b) => b.id === businessId);
-    if (!ownsBiz) {
-      return res.status(403).json({ error: "Forbidden: You do not own this business." });
-    }
+   const userBizs = await getBusinesses(loggedInUserId);
+
+const targetBiz = userBizs.find(
+  (b: any) => b.id === businessId
+);
+
+if (!targetBiz) {
+  return res.status(403).json({
+    error: "Forbidden: You do not own this business."
+  });
+}
+
+if (targetBiz.status === "archived") {
+  return res.status(409).json({
+    error: "Cannot add customers to an archived business."
+  });
+}
 
     const id = "cust_" + Math.random().toString(36).substring(2, 11);
     // Use the explicitly submitted paymentAmount as the primary source of truth.
