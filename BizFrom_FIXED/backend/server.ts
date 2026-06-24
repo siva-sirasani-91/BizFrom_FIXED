@@ -97,6 +97,9 @@ function getCleanEnvVar(key: string): string | undefined {
 }
 
 const SESSION_SECRET = getCleanEnvVar("SESSION_SECRET") || "siva-crm-secure-session-secret-key-159c381";
+if (!SESSION_SECRET) {
+  throw new Error("SESSION_SECRET is required");
+}
 
 function parseCookies(cookieStr: string | undefined): Record<string, string> {
   const list: Record<string, string> = {};
@@ -1087,64 +1090,109 @@ app.get("/api/customers", async (req: Request, res: Response) => {
   }
 });
 
-// ADD CUSTOMER
 app.post("/api/customers", async (req: Request, res: Response) => {
   const token = getSessionToken(req);
   const loggedInUserId = verifySessionToken(token);
+
   if (!loggedInUserId) {
-    return res.status(401).json({ error: "Unauthorized. Please log in first." });
+    return res.status(401).json({
+      error: "Unauthorized. Please log in first."
+    });
   }
 
-  const { businessId, data, paymentAmount, paymentMethod, transactionId } = req.body;
+  const {
+    businessId,
+    data,
+    paymentAmount,
+    paymentMethod,
+    transactionId
+  } = req.body;
 
   if (!businessId || !data) {
-    return res.status(400).json({ error: "businessId and answers data are required." });
+    return res.status(400).json({
+      error: "businessId and answers data are required."
+    });
+  }
+
+  const amount = Number(paymentAmount);
+
+  if (paymentAmount !== undefined) {
+    if (isNaN(amount)) {
+      return res.status(400).json({
+        error: "Payment amount must be a valid number."
+      });
+    }
+
+    if (amount < 0) {
+      return res.status(400).json({
+        error: "Payment amount cannot be negative."
+      });
+    }
   }
 
   try {
-   const userBizs = await getBusinesses(loggedInUserId);
+    const userBizs = await getBusinesses(loggedInUserId);
 
-const targetBiz = userBizs.find(
-  (b: any) => b.id === businessId
-);
+    const targetBiz = userBizs.find(
+      (b: any) => b.id === businessId
+    );
 
-if (!targetBiz) {
-  return res.status(403).json({
-    error: "Forbidden: You do not own this business."
-  });
-}
+    if (!targetBiz) {
+      return res.status(403).json({
+        error: "Forbidden: You do not own this business."
+      });
+    }
 
-if (targetBiz.status === "archived") {
-  return res.status(409).json({
-    error: "Cannot add customers to an archived business."
-  });
-}
+    if (targetBiz.status === "archived") {
+      return res.status(409).json({
+        error: "Cannot add customers to an archived business."
+      });
+    }
 
-    const id = "cust_" + Math.random().toString(36).substring(2, 11);
-    // Use the explicitly submitted paymentAmount as the primary source of truth.
-    // Only fall back to scanning form fields if no explicit amount was provided.
-    const explicitAmount = Number(paymentAmount);
-    const finalPaymentAmount = (!isNaN(explicitAmount) && explicitAmount > 0)
-      ? explicitAmount
-      : getCustomerMetrics({ data, paymentAmount, paymentMethod }).amount;
+    const customerId =
+      "cust_" + Math.random().toString(36).substring(2, 11);
+
+    const finalPaymentAmount =
+      !isNaN(amount) && amount > 0
+        ? amount
+        : getCustomerMetrics({
+            data,
+            paymentAmount,
+            paymentMethod
+          }).amount;
 
     const newCustomer = {
-      id,
+      id: customerId,
       businessId,
       data,
       paymentAmount: finalPaymentAmount,
-      paymentMethod: (paymentMethod === "Online" ? "Online" : "Cash") as "Cash" | "Online",
-      transactionId: paymentMethod === "Online" ? transactionId || ("TXN" + Math.floor(100000 + Math.random() * 900000)) : undefined,
+      paymentMethod:
+        paymentMethod === "Online" ? "Online" : "Cash",
+      transactionId:
+        paymentMethod === "Online"
+          ? transactionId ||
+            ("TXN" +
+              Math.floor(
+                100000 + Math.random() * 900000
+              ))
+          : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
     const added = await addCustomerRecord(newCustomer);
-    res.status(201).json(added);
+
+    return res.status(201).json(added);
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    console.error("Create customer error:", err);
+
+    return res.status(500).json({
+      error: "Failed to create customer."
+    });
   }
 });
+
+
 
 // EDIT CUSTOMER
 app.put("/api/customers/:id", async (req: Request, res: Response) => {
@@ -1156,6 +1204,22 @@ app.put("/api/customers/:id", async (req: Request, res: Response) => {
 
   const { id } = req.params;
   const { data, paymentAmount, paymentMethod, transactionId } = req.body;
+const amount = Number(paymentAmount);
+
+if (paymentAmount !== undefined) {
+  if (isNaN(amount)) {
+    return res.status(400).json({
+      error: "Payment amount must be a valid number."
+    });
+  }
+
+  if (amount < 0) {
+    return res.status(400).json({
+      error: "Payment amount cannot be negative."
+    });
+  }
+}
+
 
   try {
     const allRecords = await getCustomerRecords();
