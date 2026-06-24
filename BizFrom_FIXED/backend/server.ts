@@ -684,12 +684,13 @@ const resetPasswordHandler = async (req: Request, res: Response) => {
     }
 
     // Support option to supply OTP during password update for backward compatibility / multi-stage security checks
-    if (otp) {
-      const request = await getOTP(email);
-      if (!request || request.type !== "reset" || request.otp !== otp) {
-        return res.status(400).json({ error: "Invalid or expired OTP code" });
-      }
-    }
+    const request = await getOTP(email);
+
+if (!request || request.type !== "reset" || request.otp !== otp) {
+  return res.status(400).json({
+    error: "OTP verification required to reset password."
+  });
+}
 
     // Securely hash password using bcrypt
     const salt = await bcrypt.genSalt(10);
