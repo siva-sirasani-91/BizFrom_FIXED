@@ -422,12 +422,19 @@ const registerHandler = async (req: Request, res: Response) => {
 
   try {
     const existingUser = await getUserByEmail(email);
-    if (existingUser) {
-      if (existingUser.status === "active" || existingUser.status === "verified") {
-        return res.status(412).json({ error: "Email address is already registered." });
-      }
-    }
 
+if (existingUser) {
+  const isActive =
+    !existingUser.status ||
+    existingUser.status === "active" ||
+    existingUser.status === "verified";
+
+  if (isActive) {
+    return res.status(412).json({
+      error: "Email address is already registered."
+    });
+  }
+}
     // Hash password with bcrypt before storing
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
