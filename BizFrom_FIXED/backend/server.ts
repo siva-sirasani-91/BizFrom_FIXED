@@ -1306,8 +1306,12 @@ app.get("/api/reports/business/:id", async (req: Request, res: Response) => {
     }
 
     const bizCustomersRaw = await getCustomerRecords(id);
-    const bizCustomers = bizCustomersRaw.filter((c: any) => !c.deletedAt);
-    const totalCustomers = bizCustomers.length;
+
+const bizCustomers = bizCustomersRaw.filter(
+  (c: any) => !c.deletedAt
+);
+
+const totalCustomers = bizCustomers.length;
 
     let totalCollection = 0;
     let cashCollection = 0;
