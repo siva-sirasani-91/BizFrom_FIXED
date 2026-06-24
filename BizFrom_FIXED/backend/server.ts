@@ -955,11 +955,22 @@ app.get("/api/forms/:businessId", async (req: Request, res: Response) => {
   const { businessId } = req.params;
   try {
     const userBizs = await getBusinesses(loggedInUserId);
-    const ownsBiz = userBizs.some((b) => b.id === businessId);
-    if (!ownsBiz) {
-      return res.status(403).json({ error: "Forbidden: You do not own this business." });
-    }
 
+const targetBiz = userBizs.find(
+  (b: any) => b.id === businessId
+);
+
+if (!targetBiz) {
+  return res.status(403).json({
+    error: "Forbidden: You do not own this business."
+  });
+}
+
+if (targetBiz.status === "archived") {
+  return res.status(409).json({
+    error: "Cannot add customers to an archived business."
+  });
+}
     const fields = await getFormFields(businessId);
     if (!fields || fields.length === 0) {
       // Return a default template structure instead of empty
